@@ -28,8 +28,26 @@ import { VideoStudioModal } from './components/VideoStudioModal';
 import { CreditsModal } from './components/CreditsModal';
 import { CodePreviewModal } from './components/CodePreviewModal';
 import { ImageViewerModal } from './components/ImageViewerModal';
+import { AuthScreen } from './components/AuthScreen';
+import { supabase } from './lib/supabase';
 
 export default function App() {
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Application Data States
   const [chats, setChats] = useState<ChatSession[]>(getSavedChats);
   const [activeChatId, setActiveChatIdState] = useState<string | null>(getActiveChatId);
@@ -41,6 +59,10 @@ export default function App() {
   const [activeMode, setActiveMode] = useState<'general' | 'programming' | 'image_prompt' | 'video_director'>('general');
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  if (!session) {
+    return <AuthScreen />;
+  }
 
   // Modal States
   const [showCreditsModal, setShowCreditsModal] = useState(false);

@@ -404,6 +404,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               Bóveda
             </button>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                const { supabase } = await import('../lib/supabase');
+                await supabase.auth.signOut();
+              }}
+              className="px-2.5 py-1 ml-1 rounded-lg bg-red-500/20 hover:bg-red-500 text-red-300 hover:text-slate-950 text-[10px] font-bold transition-all border border-red-500/30"
+              title="Cerrar Sesión"
+            >
+              Salir
+            </button>
           </div>
         </div>
       </aside>
