@@ -1,0 +1,6 @@
+{
+  "name": "OPTIMUS IA",
+  "description": "Asistente IA de programación, chat inteligente, análisis de imágenes, generación de videos cinematográficos y gestión de proyectos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
