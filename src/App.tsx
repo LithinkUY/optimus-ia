@@ -29,12 +29,15 @@ import { CreditsModal } from './components/CreditsModal';
 import { CodePreviewModal } from './components/CodePreviewModal';
 import { ImageViewerModal } from './components/ImageViewerModal';
 import { AuthScreen } from './components/AuthScreen';
+import { AdminPanel } from './components/AdminPanel';
 import { supabase } from './lib/supabase';
 
 export default function App() {
   const [session, setSession] = useState<any>(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   useEffect(() => {
+    (window as any).toggleAdminPanel = () => setShowAdminPanel(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -488,6 +491,10 @@ export default function App() {
           prompt={imageViewerData.prompt}
           onClose={() => setImageViewerData(null)}
         />
+      )}
+
+      {showAdminPanel && (
+        <AdminPanel onClose={() => setShowAdminPanel(false)} />
       )}
     </div>
   );

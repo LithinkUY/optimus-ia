@@ -405,6 +405,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Bóveda
             </button>
             <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if ((window as any).toggleAdminPanel) (window as any).toggleAdminPanel();
+              }}
+              className="px-2.5 py-1 ml-1 rounded-lg bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-slate-950 text-[10px] font-bold transition-all border border-purple-500/30"
+              title="Panel Admin"
+            >
+              Admin
+            </button>
+            <button
               onClick={async (e) => {
                 e.stopPropagation();
                 const { supabase } = await import('../lib/supabase');
