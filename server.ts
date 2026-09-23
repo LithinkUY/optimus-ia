@@ -330,7 +330,7 @@ app.post('/api/generate-hf-video', async (req: Request, res: Response) => {
     const hfToken = process.env.HF_API_KEY;
     if (!hfToken) return res.status(400).json({ error: 'Falta configurar HF_API_KEY en el servidor' });
 
-    const response = await fetch('https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b', {
+    const response = await fetch('https://router.huggingface.co/hf-inference/models/damo-vilab/text-to-video-ms-1.7b', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${hfToken}`,
