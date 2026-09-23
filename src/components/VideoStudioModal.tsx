@@ -140,11 +140,48 @@ export const VideoStudioModal: React.FC<VideoStudioModalProps> = ({
       setProgress(20);
       setStatusMessage('Planificando trayectorias de cámara 3D e iluminación anamórfica...');
 
-      // 2. Render on canvas & audio synthesizer
+      // 2. Render on canvas & audio synthesizer or Veo
       const videoResult = await renderVideoOnCanvas(storyboard, videoType, (p, msg) => {
         setProgress(20 + Math.floor(p * 0.75));
         setStatusMessage(msg);
       });
+
+      if (videoType === 'cinematic') {
+        setStatusMessage('Conectando con Google Veo (Gemini API)...');
+        try {
+          const veoRes = await fetch('/api/generate-veo-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: `${style}: ${prompt} (${duration}s)` })
+          });
+          
+          if (veoRes.ok) {
+            const { operationName } = await veoRes.json();
+            setStatusMessage('Renderizando con Google Veo en la nube (esto puede tardar 2-3 minutos)...');
+            
+            let veoVideoUrl = '';
+            while (true) {
+              await new Promise(r => setTimeout(r, 10000));
+              setProgress(prev => Math.min(prev + 1, 95));
+              const pollRes = await fetch(`/api/generate-veo-video/status?name=${encodeURIComponent(operationName)}`);
+              if (!pollRes.ok) break;
+              const pollData = await pollRes.json();
+              if (pollData.status === 'succeeded') {
+                veoVideoUrl = pollData.videoUrl;
+                break;
+              } else if (pollData.status === 'failed') {
+                console.error('Veo Error:', pollData.error);
+                break;
+              }
+            }
+            if (veoVideoUrl) {
+              videoResult.videoUrl = veoVideoUrl;
+            }
+          }
+        } catch (e) {
+          console.error('Fallo la conexion a Veo:', e);
+        }
+      }
 
       // 3. Deduct credits if cinematic
       if (creditsCost > 0) {

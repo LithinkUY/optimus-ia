@@ -321,6 +321,65 @@ IMPORTANTE:
   }
 });
 
+// Veo Video Generation API
+app.post('/api/generate-veo-video', async (req: Request, res: Response) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Falta el prompt' });
+    
+    const aiClient = ai as any;
+    const generateFn = aiClient.models.generateVideos || aiClient.models.generate_videos;
+    
+    if (!generateFn) {
+       return res.status(500).json({ error: 'La versión del SDK de Gemini no soporta Veo aún. Actualiza @google/genai.' });
+    }
+
+    const operation = await generateFn.call(aiClient.models, {
+      model: 'veo-3.1-generate', // u otros como veo-2.0-generate
+      prompt: prompt,
+      config: {
+        number_of_videos: 1,
+        duration_seconds: 5,
+        aspect_ratio: '16:9'
+      }
+    });
+
+    return res.json({ operationName: operation.name });
+  } catch (error: any) {
+    console.error('Error iniciando Veo Video:', error);
+    return res.status(500).json({ error: error.message || 'Error en Veo Video' });
+  }
+});
+
+app.get('/api/generate-veo-video/status', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.query;
+    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Falta nombre de operación' });
+    
+    const aiClient = ai as any;
+    const getFn = aiClient.operations?.get;
+    
+    if (!getFn) {
+      return res.status(500).json({ error: 'Operaciones asíncronas no soportadas en este SDK.' });
+    }
+
+    const operation = await getFn.call(aiClient.operations, name);
+    
+    if (operation.done) {
+      if (operation.error) {
+         return res.json({ status: 'failed', error: operation.error });
+      }
+      const videoUri = operation.response?.generated_videos?.[0]?.video?.uri || operation.response?.generatedVideos?.[0]?.video?.uri;
+      return res.json({ status: 'succeeded', videoUrl: videoUri || null });
+    }
+    
+    return res.json({ status: 'processing' });
+  } catch (error: any) {
+    console.error('Error en status Veo Video:', error);
+    return res.status(500).json({ error: error.message || 'Error en Veo Status' });
+  }
+});
+
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
