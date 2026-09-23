@@ -321,41 +321,113 @@ IMPORTANTE:
   }
 });
 
-// Hugging Face Video Generation API (Free Tier Fallback)
-app.post('/api/generate-hf-video', async (req: Request, res: Response) => {
+// JSON2Video API (Generación Real de Video con Imágenes y Texto)
+app.post('/api/generate-video', async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Falta el prompt' });
     
-    const hfToken = process.env.HF_API_KEY;
-    if (!hfToken) return res.status(400).json({ error: 'Falta configurar HF_API_KEY en el servidor' });
+    const j2vToken = process.env.JSON2VIDEO_API_KEY;
+    if (!j2vToken) return res.status(400).json({ error: 'Falta configurar JSON2VIDEO_API_KEY en el servidor' });
 
-    const response = await fetch('https://router.huggingface.co/hf-inference/models/damo-vilab/text-to-video-ms-1.7b', {
+    // Construir 3 escenas estáticas usando imágenes de Pollinations
+    const encodedPrompt = encodeURIComponent(prompt.substring(0, 100));
+    const scene1 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%201?width=1280&height=720&nologo=true`;
+    const scene2 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%202?width=1280&height=720&nologo=true`;
+    const scene3 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%203?width=1280&height=720&nologo=true`;
+
+    const payload = {
+      width: 1280,
+      height: 720,
+      fps: 30,
+      quality: "high",
+      scenes: [
+        {
+          duration: 3,
+          elements: [
+            { type: "image", src: scene1 },
+            { type: "text", text: prompt, fontSize: "40px", color: "#FFFFFF", y: 600, backgroundColor: "#00000088", padding: "10px" }
+          ]
+        },
+        {
+          duration: 3,
+          transition: { style: "fade", duration: 1 },
+          elements: [
+            { type: "image", src: scene2 }
+          ]
+        },
+        {
+          duration: 3,
+          transition: { style: "fade", duration: 1 },
+          elements: [
+            { type: "image", src: scene3 }
+          ]
+        }
+      ]
+    };
+
+    const response = await fetch('https://api.json2video.com/v2/movies', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${hfToken}`,
+        'x-api-key': j2vToken,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ inputs: prompt })
+      body: JSON.stringify(payload)
     });
-
-    if (response.status === 503) {
-      return res.status(503).json({ error: 'El modelo se está cargando (503).', loading: true });
-    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: err.error || 'Error conectando a Hugging Face' });
+      return res.status(response.status).json({ error: err.message || 'Error conectando a JSON2Video' });
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
-    const dataUrl = `data:video/mp4;base64,${base64}`;
-    
-    return res.json({ videoUrl: dataUrl });
+    const data = await response.json();
+    if (!data.success) {
+      return res.status(500).json({ error: 'JSON2Video rechazó el proyecto' });
+    }
+
+    // Retorna el ID del proyecto para hacer polling
+    return res.json({ project: data.project });
   } catch (error: any) {
-    console.error('Error iniciando HF Video:', error);
-    return res.status(500).json({ error: error.message || 'Error en HF Video' });
+    console.error('Error iniciando JSON2Video:', error);
+    return res.status(500).json({ error: error.message || 'Error en JSON2Video' });
+  }
+});
+
+// Polling status para JSON2Video
+app.get('/api/generate-video/status', async (req: Request, res: Response) => {
+  try {
+    const { project } = req.query;
+    if (!project || typeof project !== 'string') return res.status(400).json({ error: 'Falta el project ID' });
+    
+    const j2vToken = process.env.JSON2VIDEO_API_KEY;
+    if (!j2vToken) return res.status(400).json({ error: 'Falta configurar JSON2VIDEO_API_KEY en el servidor' });
+
+    const response = await fetch(`https://api.json2video.com/v2/movies?project=${project}`, {
+      method: 'GET',
+      headers: { 'x-api-key': j2vToken }
+    });
+
+    if (!response.ok) {
+      return res.status(500).json({ error: 'Error consultando estado del video' });
+    }
+
+    const data = await response.json();
+    const movie = data.movies?.[0];
+
+    if (!movie) {
+       return res.json({ status: 'processing' });
+    }
+
+    if (movie.status === 'done') {
+      return res.json({ status: 'succeeded', videoUrl: movie.url });
+    } else if (movie.status === 'error') {
+      return res.json({ status: 'failed', error: movie.message || 'Error en renderizado' });
+    }
+
+    return res.json({ status: 'processing' });
+  } catch (error: any) {
+    console.error('Error en status JSON2Video:', error);
+    return res.status(500).json({ error: error.message || 'Error en Status' });
   }
 });
 

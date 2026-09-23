@@ -147,44 +147,43 @@ export const VideoStudioModal: React.FC<VideoStudioModalProps> = ({
       });
 
       if (videoType === 'cinematic') {
-        setStatusMessage('Conectando con Hugging Face Inference API...');
+        setStatusMessage('Conectando con JSON2Video API...');
         try {
-          let hfVideoUrl = '';
+          const j2vRes = await fetch('/api/generate-video', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: `${style}: ${prompt}` })
+          });
           
-          // Poll until model loads (503 means model is loading)
-          for (let i = 0; i < 20; i++) {
-            setStatusMessage(`Consultando a Hugging Face (Intento ${i+1}/20)...`);
-            const hfRes = await fetch('/api/generate-hf-video', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt: `${style}: ${prompt}` })
-            });
+          if (j2vRes.ok) {
+            const { project } = await j2vRes.json();
+            setStatusMessage('Renderizando y editando tu video en la nube...');
             
-            if (hfRes.status === 503) {
-              setStatusMessage('El modelo de video gratuito se está despertando en el servidor. Esperando 10 segundos...');
-              await new Promise(r => setTimeout(r, 10000));
-              setProgress(prev => Math.min(prev + 5, 95));
-              continue;
-            }
-            
-            if (hfRes.ok) {
-              const data = await hfRes.json();
-              if (data.videoUrl) {
-                hfVideoUrl = data.videoUrl;
+            let finalVideoUrl = '';
+            while (true) {
+              await new Promise(r => setTimeout(r, 8000));
+              setProgress(prev => Math.min(prev + 2, 95));
+              const pollRes = await fetch(`/api/generate-video/status?project=${encodeURIComponent(project)}`);
+              if (!pollRes.ok) break;
+              const pollData = await pollRes.json();
+              
+              if (pollData.status === 'succeeded') {
+                finalVideoUrl = pollData.videoUrl;
+                break;
+              } else if (pollData.status === 'failed') {
+                console.error('JSON2Video Error:', pollData.error);
+                break;
               }
-              break;
-            } else {
-              const err = await hfRes.json();
-              console.error('Hugging Face Error:', err);
-              break;
             }
-          }
-          
-          if (hfVideoUrl) {
-            videoResult.videoUrl = hfVideoUrl;
+            if (finalVideoUrl) {
+              videoResult.videoUrl = finalVideoUrl;
+            }
+          } else {
+             const err = await j2vRes.json();
+             console.error('JSON2Video API Error:', err);
           }
         } catch (e) {
-          console.error('Fallo la conexion a Hugging Face:', e);
+          console.error('Fallo la conexion a JSON2Video:', e);
         }
       }
 
