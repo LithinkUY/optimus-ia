@@ -330,37 +330,24 @@ app.post('/api/generate-video', async (req: Request, res: Response) => {
     const j2vToken = process.env.JSON2VIDEO_API_KEY;
     if (!j2vToken) return res.status(400).json({ error: 'Falta configurar JSON2VIDEO_API_KEY en el servidor' });
 
-    // Construir 3 escenas estáticas usando imágenes de Pollinations
-    const encodedPrompt = encodeURIComponent(prompt.substring(0, 100));
-    const scene1 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%201?width=1280&height=720&nologo=true`;
-    const scene2 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%202?width=1280&height=720&nologo=true`;
-    const scene3 = `https://image.pollinations.ai/prompt/${encodedPrompt}%20escena%203?width=1280&height=720&nologo=true`;
-
+    // Construir escenas con colores sólidos y texto animado para evitar Error 429 de Pollinations
     const payload = {
       width: 1280,
       height: 720,
       fps: 30,
-      quality: "high",
+      quality: "low",
       scenes: [
         {
-          duration: 3,
+          duration: 4,
           elements: [
-            { type: "image", src: scene1 },
-            { type: "text", text: prompt, fontSize: "40px", color: "#FFFFFF", y: 600, backgroundColor: "#00000088", padding: "10px" }
+            { type: "text", text: prompt, fontSize: "60px", color: "#00FFFF", backgroundColor: "#000000", padding: "20px" }
           ]
         },
         {
-          duration: 3,
+          duration: 4,
           transition: { style: "fade", duration: 1 },
           elements: [
-            { type: "image", src: scene2 }
-          ]
-        },
-        {
-          duration: 3,
-          transition: { style: "fade", duration: 1 },
-          elements: [
-            { type: "image", src: scene3 }
+            { type: "text", text: "Generado por OPTIMUS IA", fontSize: "50px", color: "#FFFFFF", backgroundColor: "#000000", padding: "20px" }
           ]
         }
       ]
