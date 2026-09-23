@@ -334,15 +334,34 @@ app.post('/api/generate-veo-video', async (req: Request, res: Response) => {
        return res.status(500).json({ error: 'La versión del SDK de Gemini no soporta Veo aún. Actualiza @google/genai.' });
     }
 
-    const operation = await generateFn.call(aiClient.models, {
-      model: 'veo-3.1-generate', // u otros como veo-2.0-generate
-      prompt: prompt,
-      config: {
-        number_of_videos: 1,
-        duration_seconds: 5,
-        aspect_ratio: '16:9'
+    const modelsToTry = ['veo-2.0-generate', 'veo-3.1-fast-generate-preview', 'veo-0.1-generate', 'veo-2.0-generate-preview'];
+    let operation: any = null;
+    let lastError: any = null;
+
+    for (const modelId of modelsToTry) {
+      try {
+        operation = await generateFn.call(aiClient.models, {
+          model: modelId,
+          prompt: prompt,
+          config: {
+            number_of_videos: 1,
+            duration_seconds: 5,
+            aspect_ratio: '16:9'
+          }
+        });
+        if (operation) {
+          console.log(`[OPTIMUS IA] Veo conectado con éxito usando el modelo: ${modelId}`);
+          break; // Exit loop on success
+        }
+      } catch (e: any) {
+        lastError = e;
+        console.warn(`[OPTIMUS IA] Modelo ${modelId} falló:`, e.message);
       }
-    });
+    }
+
+    if (!operation) {
+      throw lastError || new Error('Ningún modelo de Veo está disponible para esta API Key.');
+    }
 
     return res.json({ operationName: operation.name });
   } catch (error: any) {
