@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Shield, Users, Edit3, Save, X } from 'lucide-react';
 
@@ -64,7 +64,7 @@ export const AdminPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <tr key={u.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-all">
                     <td className="py-4 text-white text-sm">{u.email}</td>
                     <td className="py-4">
-                      <span className={\	ext-xs px-2 py-1 rounded-full \\}>{u.role}</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${u.role === 'admin' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-300'}`}>{u.role}</span>
                     </td>
                     <td className="py-4 text-cyan-400 font-bold">
                       {editingId === u.id ? (
