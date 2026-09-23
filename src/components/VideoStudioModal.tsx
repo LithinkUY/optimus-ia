@@ -147,39 +147,44 @@ export const VideoStudioModal: React.FC<VideoStudioModalProps> = ({
       });
 
       if (videoType === 'cinematic') {
-        setStatusMessage('Conectando con Google Veo (Gemini API)...');
+        setStatusMessage('Conectando con Hugging Face Inference API...');
         try {
-          const veoRes = await fetch('/api/generate-veo-video', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: `${style}: ${prompt} (${duration}s)` })
-          });
+          let hfVideoUrl = '';
           
-          if (veoRes.ok) {
-            const { operationName } = await veoRes.json();
-            setStatusMessage('Renderizando con Google Veo en la nube (esto puede tardar 2-3 minutos)...');
+          // Poll until model loads (503 means model is loading)
+          for (let i = 0; i < 20; i++) {
+            setStatusMessage(`Consultando a Hugging Face (Intento ${i+1}/20)...`);
+            const hfRes = await fetch('/api/generate-hf-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: `${style}: ${prompt}` })
+            });
             
-            let veoVideoUrl = '';
-            while (true) {
+            if (hfRes.status === 503) {
+              setStatusMessage('El modelo de video gratuito se está despertando en el servidor. Esperando 10 segundos...');
               await new Promise(r => setTimeout(r, 10000));
-              setProgress(prev => Math.min(prev + 1, 95));
-              const pollRes = await fetch(`/api/generate-veo-video/status?name=${encodeURIComponent(operationName)}`);
-              if (!pollRes.ok) break;
-              const pollData = await pollRes.json();
-              if (pollData.status === 'succeeded') {
-                veoVideoUrl = pollData.videoUrl;
-                break;
-              } else if (pollData.status === 'failed') {
-                console.error('Veo Error:', pollData.error);
-                break;
-              }
+              setProgress(prev => Math.min(prev + 5, 95));
+              continue;
             }
-            if (veoVideoUrl) {
-              videoResult.videoUrl = veoVideoUrl;
+            
+            if (hfRes.ok) {
+              const data = await hfRes.json();
+              if (data.videoUrl) {
+                hfVideoUrl = data.videoUrl;
+              }
+              break;
+            } else {
+              const err = await hfRes.json();
+              console.error('Hugging Face Error:', err);
+              break;
             }
           }
+          
+          if (hfVideoUrl) {
+            videoResult.videoUrl = hfVideoUrl;
+          }
         } catch (e) {
-          console.error('Fallo la conexion a Veo:', e);
+          console.error('Fallo la conexion a Hugging Face:', e);
         }
       }
 

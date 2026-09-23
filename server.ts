@@ -321,81 +321,41 @@ IMPORTANTE:
   }
 });
 
-// Veo Video Generation API
-app.post('/api/generate-veo-video', async (req: Request, res: Response) => {
+// Hugging Face Video Generation API (Free Tier Fallback)
+app.post('/api/generate-hf-video', async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Falta el prompt' });
     
-    const aiClient = ai as any;
-    const generateFn = aiClient.models.generateVideos || aiClient.models.generate_videos;
+    const hfToken = process.env.HF_API_KEY;
+    if (!hfToken) return res.status(400).json({ error: 'Falta configurar HF_API_KEY en el servidor' });
+
+    const response = await fetch('https://api-inference.huggingface.co/models/damo-vilab/text-to-video-ms-1.7b', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ inputs: prompt })
+    });
+
+    if (response.status === 503) {
+      return res.status(503).json({ error: 'El modelo se está cargando (503).', loading: true });
+    }
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: err.error || 'Error conectando a Hugging Face' });
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const dataUrl = `data:video/mp4;base64,${base64}`;
     
-    if (!generateFn) {
-       return res.status(500).json({ error: 'La versión del SDK de Gemini no soporta Veo aún. Actualiza @google/genai.' });
-    }
-
-    const modelsToTry = ['veo-2.0-generate', 'veo-3.1-fast-generate-preview', 'veo-0.1-generate', 'veo-2.0-generate-preview'];
-    let operation: any = null;
-    let lastError: any = null;
-
-    for (const modelId of modelsToTry) {
-      try {
-        operation = await generateFn.call(aiClient.models, {
-          model: modelId,
-          prompt: prompt,
-          config: {
-            number_of_videos: 1,
-            duration_seconds: 5,
-            aspect_ratio: '16:9'
-          }
-        });
-        if (operation) {
-          console.log(`[OPTIMUS IA] Veo conectado con éxito usando el modelo: ${modelId}`);
-          break; // Exit loop on success
-        }
-      } catch (e: any) {
-        lastError = e;
-        console.warn(`[OPTIMUS IA] Modelo ${modelId} falló:`, e.message);
-      }
-    }
-
-    if (!operation) {
-      throw lastError || new Error('Ningún modelo de Veo está disponible para esta API Key.');
-    }
-
-    return res.json({ operationName: operation.name });
+    return res.json({ videoUrl: dataUrl });
   } catch (error: any) {
-    console.error('Error iniciando Veo Video:', error);
-    return res.status(500).json({ error: error.message || 'Error en Veo Video' });
-  }
-});
-
-app.get('/api/generate-veo-video/status', async (req: Request, res: Response) => {
-  try {
-    const { name } = req.query;
-    if (!name || typeof name !== 'string') return res.status(400).json({ error: 'Falta nombre de operación' });
-    
-    const aiClient = ai as any;
-    const getFn = aiClient.operations?.get;
-    
-    if (!getFn) {
-      return res.status(500).json({ error: 'Operaciones asíncronas no soportadas en este SDK.' });
-    }
-
-    const operation = await getFn.call(aiClient.operations, name);
-    
-    if (operation.done) {
-      if (operation.error) {
-         return res.json({ status: 'failed', error: operation.error });
-      }
-      const videoUri = operation.response?.generated_videos?.[0]?.video?.uri || operation.response?.generatedVideos?.[0]?.video?.uri;
-      return res.json({ status: 'succeeded', videoUrl: videoUri || null });
-    }
-    
-    return res.json({ status: 'processing' });
-  } catch (error: any) {
-    console.error('Error en status Veo Video:', error);
-    return res.status(500).json({ error: error.message || 'Error en Veo Status' });
+    console.error('Error iniciando HF Video:', error);
+    return res.status(500).json({ error: error.message || 'Error en HF Video' });
   }
 });
 
