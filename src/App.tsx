@@ -63,10 +63,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  if (!session) {
-    return <AuthScreen />;
-  }
-
   // Modal States
   const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [videoStudioConfig, setVideoStudioConfig] = useState<{
@@ -374,6 +370,10 @@ export default function App() {
       prev.map((c) => (c.projectId === projectId ? { ...c, projectId: undefined } : c))
     );
   };
+
+  if (!session) {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100 antialiased selection:bg-cyan-500 selection:text-slate-950">
