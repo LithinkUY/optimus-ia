@@ -321,99 +321,128 @@ IMPORTANTE:
   }
 });
 
-// JSON2Video API (Generación Real de Video con Imágenes y Texto)
+// Comfy Cloud API (Generación Real de Video con LTX-Video)
 app.post('/api/generate-video', async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Falta el prompt' });
     
-    const j2vToken = process.env.JSON2VIDEO_API_KEY;
-    if (!j2vToken) return res.status(400).json({ error: 'Falta configurar JSON2VIDEO_API_KEY en el servidor' });
+    const comfyToken = "comfyui-6633b0db00fd7aca386f45ce62fabb7212f9f81e66fc3e58f7e99495cd0c2407";
 
-    // Construir escenas con colores sólidos y texto animado para evitar Error 429 de Pollinations
-    const payload = {
-      width: 1280,
-      height: 720,
-      fps: 30,
-      quality: "low",
-      scenes: [
-        {
-          duration: 4,
-          elements: [
-            { type: "text", text: prompt, fontSize: "60px", color: "#00FFFF", backgroundColor: "#000000", padding: "20px" }
-          ]
-        },
-        {
-          duration: 4,
-          transition: { style: "fade", duration: 1 },
-          elements: [
-            { type: "text", text: "Generado por OPTIMUS IA", fontSize: "50px", color: "#FFFFFF", backgroundColor: "#000000", padding: "20px" }
-          ]
-        }
-      ]
+    const workflow = {
+      "326": { "inputs": { "filename_prefix": "video/ComfyUI", "format": "mp4", "format.codec": "auto", "codec": "auto", "video": [ "325:312", 0 ] }, "class_type": "SaveVideo" },
+      "325:278": { "inputs": { "noise_seed": Math.floor(Math.random() * 1000000) }, "class_type": "RandomNoise" },
+      "325:279": { "inputs": { "noise_seed": Math.floor(Math.random() * 1000000) }, "class_type": "RandomNoise" },
+      "325:280": { "inputs": { "video_latent": [ "325:290", 0 ], "audio_latent": [ "325:309", 1 ] }, "class_type": "LTXVConcatAVLatent" },
+      "325:281": { "inputs": { "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors" }, "class_type": "LTXVAudioVAELoader" },
+      "325:282": { "inputs": { "sampler_name": "euler_cfg_pp" }, "class_type": "KSamplerSelect" },
+      "325:283": { "inputs": { "sigmas": "0.85, 0.7250, 0.4219, 0.0" }, "class_type": "ManualSigmas" },
+      "325:284": { "inputs": { "cfg": 1, "model": [ "325:287", 0 ], "positive": [ "325:286", 0 ], "negative": [ "325:286", 1 ] }, "class_type": "CFGGuider" },
+      "325:285": { "inputs": { "noise": [ "325:279", 0 ], "guider": [ "325:316", 0 ], "sampler": [ "325:293", 0 ], "sigmas": [ "325:308", 0 ], "latent_image": [ "325:321", 0 ] }, "class_type": "SamplerCustomAdvanced" },
+      "325:286": { "inputs": { "positive": [ "325:306", 0 ], "negative": [ "325:306", 1 ], "latent": [ "325:309", 0 ] }, "class_type": "LTXVCropGuides" },
+      "325:287": { "inputs": { "lora_name": "ltx-2.3-22b-distilled-lora-384.safetensors", "strength_model": 0.5, "model": [ "325:318", 0 ] }, "class_type": "LoraLoaderModelOnly" },
+      "325:288": { "inputs": { "longer_edge": 1536, "images": [ "325:292", 0 ] }, "class_type": "ResizeImagesByLongerEdge" },
+      "325:289": { "inputs": { "samples": [ "325:309", 0 ], "upscale_model": [ "325:313", 0 ], "vae": [ "325:318", 2 ] }, "class_type": "LTXVLatentUpsampler" },
+      "325:290": { "inputs": { "strength": 1, "bypass": [ "325:304", 0 ], "vae": [ "325:318", 2 ], "image": [ "325:291", 0 ], "latent": [ "325:289", 0 ] }, "class_type": "LTXVImgToVideoInplace" },
+      "325:291": { "inputs": { "img_compression": 18, "image": [ "325:288", 0 ] }, "class_type": "LTXVPreprocess" },
+      "325:292": { "inputs": { "resize_type": "scale dimensions", "resize_type.width": [ "325:314", 0 ], "resize_type.height": [ "325:301", 0 ], "resize_type.crop": "center", "scale_method": "lanczos", "input": [ "325:322", 0 ] }, "class_type": "ResizeImageMaskNode" },
+      "325:293": { "inputs": { "sampler_name": "euler_ancestral_cfg_pp" }, "class_type": "KSamplerSelect" },
+      "325:294": { "inputs": { "expression": "a/2", "values.a": [ "325:314", 0 ] }, "class_type": "ComfyMathExpression" },
+      "325:296": { "inputs": { "expression": "a/2", "values.a": [ "325:301", 0 ] }, "class_type": "ComfyMathExpression" },
+      "325:297": { "inputs": { "width": [ "325:294", 1 ], "height": [ "325:296", 1 ], "length": [ "325:323", 1 ], "batch_size": 1 }, "class_type": "EmptyLTXVLatentVideo" },
+      "325:298": { "inputs": { "strength": 0.7, "bypass": [ "325:304", 0 ], "vae": [ "325:318", 2 ], "image": [ "325:291", 0 ], "latent": [ "325:297", 0 ] }, "class_type": "LTXVImgToVideoInplace" },
+      "325:299": { "inputs": { "samples": [ "325:311", 1 ], "audio_vae": [ "325:281", 0 ] }, "class_type": "LTXVAudioVAEDecode" },
+      "325:300": { "inputs": { "expression": "a", "values.a": [ "325:302", 0 ] }, "class_type": "ComfyMathExpression" },
+      "325:301": { "inputs": { "value": 720 }, "class_type": "PrimitiveInt" },
+      "325:302": { "inputs": { "value": 25 }, "class_type": "PrimitiveInt" },
+      "325:303": { "inputs": { "value": 5 }, "class_type": "PrimitiveInt" },
+      "325:304": { "inputs": { "value": true }, "class_type": "PrimitiveBoolean" },
+      "325:305": { "inputs": { "text": [ "325:320", 0 ], "clip": [ "325:319", 0 ] }, "class_type": "CLIPTextEncode" },
+      "325:306": { "inputs": { "frame_rate": [ "325:300", 0 ], "positive": [ "325:305", 0 ], "negative": [ "325:315", 0 ] }, "class_type": "LTXVConditioning" },
+      "325:307": { "inputs": { "frames_number": [ "325:323", 1 ], "frame_rate": [ "325:300", 1 ], "batch_size": 1, "audio_vae": [ "325:281", 0 ] }, "class_type": "LTXVEmptyLatentAudio" },
+      "325:308": { "inputs": { "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0" }, "class_type": "ManualSigmas" },
+      "325:309": { "inputs": { "av_latent": [ "325:285", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
+      "325:310": { "inputs": { "noise": [ "325:278", 0 ], "guider": [ "325:284", 0 ], "sampler": [ "325:282", 0 ], "sigmas": [ "325:283", 0 ], "latent_image": [ "325:280", 0 ] }, "class_type": "SamplerCustomAdvanced" },
+      "325:311": { "inputs": { "av_latent": [ "325:310", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
+      "325:312": { "inputs": { "fps": [ "325:300", 0 ], "bit_depth": "auto", "color_space": "sRGB", "codec": "none", "images": [ "325:317", 0 ], "audio": [ "325:299", 0 ] }, "class_type": "CreateVideo" },
+      "325:313": { "inputs": { "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors" }, "class_type": "LatentUpscaleModelLoader" },
+      "325:314": { "inputs": { "value": 1280 }, "class_type": "PrimitiveInt" },
+      "325:315": { "inputs": { "text": "bad quality, blurry, artifacts", "clip": [ "325:319", 0 ] }, "class_type": "CLIPTextEncode" },
+      "325:316": { "inputs": { "cfg": 1, "model": [ "325:287", 0 ], "positive": [ "325:306", 0 ], "negative": [ "325:306", 1 ] }, "class_type": "CFGGuider" },
+      "325:317": { "inputs": { "tile_size": 768, "overlap": 64, "temporal_size": 4096, "temporal_overlap": 4, "samples": [ "325:311", 0 ], "vae": [ "325:318", 2 ] }, "class_type": "VAEDecodeTiled" },
+      "325:318": { "inputs": { "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors" }, "class_type": "CheckpointLoaderSimple" },
+      "325:319": { "inputs": { "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors", "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors", "device": "default" }, "class_type": "LTXAVTextEncoderLoader" },
+      "325:320": { "inputs": { "value": prompt }, "class_type": "PrimitiveStringMultiline" },
+      "325:321": { "inputs": { "video_latent": [ "325:298", 0 ], "audio_latent": [ "325:307", 0 ] }, "class_type": "LTXVConcatAVLatent" },
+      "325:322": { "inputs": { "image": "example.png" }, "class_type": "LoadImage" },
+      "325:323": { "inputs": { "expression": "a * b + 1", "values.a": [ "325:303", 0 ], "values.b": [ "325:302", 0 ] }, "class_type": "ComfyMathExpression" }
     };
 
-    const response = await fetch('https://api.json2video.com/v2/movies', {
-      method: 'POST',
+    const response = await fetch("https://cloud.comfy.org/api/v2/jobs", {
+      method: "POST",
       headers: {
-        'x-api-key': j2vToken,
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${comfyToken}`
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ workflow })
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: err.message || 'Error conectando a JSON2Video' });
+      const err = await response.json().catch(()=>({}));
+      return res.status(response.status).json({ error: err.message || 'Error conectando a Comfy Cloud' });
     }
 
     const data = await response.json();
-    if (!data.success) {
-      return res.status(500).json({ error: 'JSON2Video rechazó el proyecto' });
-    }
-
-    // Retorna el ID del proyecto para hacer polling
-    return res.json({ project: data.project });
+    return res.json({ project: data.id });
   } catch (error: any) {
-    console.error('Error iniciando JSON2Video:', error);
-    return res.status(500).json({ error: error.message || 'Error en JSON2Video' });
+    console.error('Error iniciando Comfy:', error);
+    return res.status(500).json({ error: error.message || 'Error en Comfy' });
   }
 });
 
-// Polling status para JSON2Video
+// Polling status para Comfy Cloud
 app.get('/api/generate-video/status', async (req: Request, res: Response) => {
   try {
     const { project } = req.query;
     if (!project || typeof project !== 'string') return res.status(400).json({ error: 'Falta el project ID' });
     
-    const j2vToken = process.env.JSON2VIDEO_API_KEY;
-    if (!j2vToken) return res.status(400).json({ error: 'Falta configurar JSON2VIDEO_API_KEY en el servidor' });
+    const comfyToken = "comfyui-6633b0db00fd7aca386f45ce62fabb7212f9f81e66fc3e58f7e99495cd0c2407";
 
-    const response = await fetch(`https://api.json2video.com/v2/movies?project=${project}`, {
+    const response = await fetch(`https://cloud.comfy.org/api/v2/jobs/${project}`, {
       method: 'GET',
-      headers: { 'x-api-key': j2vToken }
+      headers: { 'Authorization': `Bearer ${comfyToken}` }
     });
 
     if (!response.ok) {
       return res.status(500).json({ error: 'Error consultando estado del video' });
     }
 
-    const data = await response.json();
-    const movie = data.movies?.[0];
+    const job = await response.json();
 
-    if (!movie) {
-       return res.json({ status: 'processing' });
-    }
+    if (job.status === 'success' || job.status === 'completed') {
+      let finalVideoUrl = "";
+      if (job.outputs) {
+        for (const nodeId in job.outputs) {
+          const out = job.outputs[nodeId];
+          if (out.videos && out.videos.length > 0) {
+            finalVideoUrl = out.videos[0].url;
+            break;
+          }
+        }
+      }
 
-    if (movie.status === 'done') {
-      return res.json({ status: 'succeeded', videoUrl: movie.url });
-    } else if (movie.status === 'error') {
-      return res.json({ status: 'failed', error: movie.message || 'Error en renderizado' });
+      if (finalVideoUrl) {
+        return res.json({ status: 'succeeded', videoUrl: finalVideoUrl });
+      } else {
+         return res.json({ status: 'failed', error: 'No se encontró URL de video en Comfy Cloud.' });
+      }
+    } else if (job.status === 'failed' || job.status === 'error') {
+      return res.json({ status: 'failed', error: job.error || 'Error en renderizado' });
     }
 
     return res.json({ status: 'processing' });
   } catch (error: any) {
-    console.error('Error en status JSON2Video:', error);
+    console.error('Error en status Comfy:', error);
     return res.status(500).json({ error: error.message || 'Error en Status' });
   }
 });
