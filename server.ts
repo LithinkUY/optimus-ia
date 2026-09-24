@@ -321,129 +321,130 @@ IMPORTANTE:
   }
 });
 
-// Comfy Cloud API (Generación Real de Video con LTX-Video)
+// ComfyUI Local a través de Ngrok (LTX-Video 2.5)
+const NGROK_URL = "https://debra-nontrusting-boredly.ngrok-free.dev";
+
 app.post('/api/generate-video', async (req: Request, res: Response) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Falta el prompt' });
-    
-    const comfyToken = "comfyui-6633b0db00fd7aca386f45ce62fabb7212f9f81e66fc3e58f7e99495cd0c2407";
 
+    // Flujo LTX-2.5 exportado desde Comfy Desktop
     const workflow = {
-      "326": { "inputs": { "filename_prefix": "video/ComfyUI", "format": "mp4", "format.codec": "auto", "codec": "auto", "video": [ "325:312", 0 ] }, "class_type": "SaveVideo" },
-      "325:278": { "inputs": { "noise_seed": Math.floor(Math.random() * 1000000) }, "class_type": "RandomNoise" },
-      "325:279": { "inputs": { "noise_seed": Math.floor(Math.random() * 1000000) }, "class_type": "RandomNoise" },
-      "325:280": { "inputs": { "video_latent": [ "325:290", 0 ], "audio_latent": [ "325:309", 1 ] }, "class_type": "LTXVConcatAVLatent" },
-      "325:281": { "inputs": { "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors" }, "class_type": "LTXVAudioVAELoader" },
-      "325:282": { "inputs": { "sampler_name": "euler_cfg_pp" }, "class_type": "KSamplerSelect" },
-      "325:283": { "inputs": { "sigmas": "0.85, 0.7250, 0.4219, 0.0" }, "class_type": "ManualSigmas" },
-      "325:284": { "inputs": { "cfg": 1, "model": [ "325:287", 0 ], "positive": [ "325:286", 0 ], "negative": [ "325:286", 1 ] }, "class_type": "CFGGuider" },
-      "325:285": { "inputs": { "noise": [ "325:279", 0 ], "guider": [ "325:316", 0 ], "sampler": [ "325:293", 0 ], "sigmas": [ "325:308", 0 ], "latent_image": [ "325:321", 0 ] }, "class_type": "SamplerCustomAdvanced" },
-      "325:286": { "inputs": { "positive": [ "325:306", 0 ], "negative": [ "325:306", 1 ], "latent": [ "325:309", 0 ] }, "class_type": "LTXVCropGuides" },
-      "325:287": { "inputs": { "lora_name": "ltx-2.3-22b-distilled-lora-384.safetensors", "strength_model": 0.5, "model": [ "325:318", 0 ] }, "class_type": "LoraLoaderModelOnly" },
-      "325:288": { "inputs": { "longer_edge": 1536, "images": [ "325:292", 0 ] }, "class_type": "ResizeImagesByLongerEdge" },
-      "325:289": { "inputs": { "samples": [ "325:309", 0 ], "upscale_model": [ "325:313", 0 ], "vae": [ "325:318", 2 ] }, "class_type": "LTXVLatentUpsampler" },
-      "325:290": { "inputs": { "strength": 1, "bypass": [ "325:304", 0 ], "vae": [ "325:318", 2 ], "image": [ "325:291", 0 ], "latent": [ "325:289", 0 ] }, "class_type": "LTXVImgToVideoInplace" },
-      "325:291": { "inputs": { "img_compression": 18, "image": [ "325:288", 0 ] }, "class_type": "LTXVPreprocess" },
-      "325:292": { "inputs": { "resize_type": "scale dimensions", "resize_type.width": [ "325:314", 0 ], "resize_type.height": [ "325:301", 0 ], "resize_type.crop": "center", "scale_method": "lanczos", "input": [ "325:322", 0 ] }, "class_type": "ResizeImageMaskNode" },
-      "325:293": { "inputs": { "sampler_name": "euler_ancestral_cfg_pp" }, "class_type": "KSamplerSelect" },
-      "325:294": { "inputs": { "expression": "a/2", "values.a": [ "325:314", 0 ] }, "class_type": "ComfyMathExpression" },
-      "325:296": { "inputs": { "expression": "a/2", "values.a": [ "325:301", 0 ] }, "class_type": "ComfyMathExpression" },
-      "325:297": { "inputs": { "width": [ "325:294", 1 ], "height": [ "325:296", 1 ], "length": [ "325:323", 1 ], "batch_size": 1 }, "class_type": "EmptyLTXVLatentVideo" },
-      "325:298": { "inputs": { "strength": 0.7, "bypass": [ "325:304", 0 ], "vae": [ "325:318", 2 ], "image": [ "325:291", 0 ], "latent": [ "325:297", 0 ] }, "class_type": "LTXVImgToVideoInplace" },
-      "325:299": { "inputs": { "samples": [ "325:311", 1 ], "audio_vae": [ "325:281", 0 ] }, "class_type": "LTXVAudioVAEDecode" },
-      "325:300": { "inputs": { "expression": "a", "values.a": [ "325:302", 0 ] }, "class_type": "ComfyMathExpression" },
-      "325:301": { "inputs": { "value": 720 }, "class_type": "PrimitiveInt" },
-      "325:302": { "inputs": { "value": 25 }, "class_type": "PrimitiveInt" },
-      "325:303": { "inputs": { "value": 5 }, "class_type": "PrimitiveInt" },
-      "325:304": { "inputs": { "value": true }, "class_type": "PrimitiveBoolean" },
-      "325:305": { "inputs": { "text": [ "325:320", 0 ], "clip": [ "325:319", 0 ] }, "class_type": "CLIPTextEncode" },
-      "325:306": { "inputs": { "frame_rate": [ "325:300", 0 ], "positive": [ "325:305", 0 ], "negative": [ "325:315", 0 ] }, "class_type": "LTXVConditioning" },
-      "325:307": { "inputs": { "frames_number": [ "325:323", 1 ], "frame_rate": [ "325:300", 1 ], "batch_size": 1, "audio_vae": [ "325:281", 0 ] }, "class_type": "LTXVEmptyLatentAudio" },
-      "325:308": { "inputs": { "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0" }, "class_type": "ManualSigmas" },
-      "325:309": { "inputs": { "av_latent": [ "325:285", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
-      "325:310": { "inputs": { "noise": [ "325:278", 0 ], "guider": [ "325:284", 0 ], "sampler": [ "325:282", 0 ], "sigmas": [ "325:283", 0 ], "latent_image": [ "325:280", 0 ] }, "class_type": "SamplerCustomAdvanced" },
-      "325:311": { "inputs": { "av_latent": [ "325:310", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
-      "325:312": { "inputs": { "fps": [ "325:300", 0 ], "bit_depth": "auto", "color_space": "sRGB", "codec": "none", "images": [ "325:317", 0 ], "audio": [ "325:299", 0 ] }, "class_type": "CreateVideo" },
-      "325:313": { "inputs": { "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors" }, "class_type": "LatentUpscaleModelLoader" },
-      "325:314": { "inputs": { "value": 1280 }, "class_type": "PrimitiveInt" },
-      "325:315": { "inputs": { "text": "bad quality, blurry, artifacts", "clip": [ "325:319", 0 ] }, "class_type": "CLIPTextEncode" },
-      "325:316": { "inputs": { "cfg": 1, "model": [ "325:287", 0 ], "positive": [ "325:306", 0 ], "negative": [ "325:306", 1 ] }, "class_type": "CFGGuider" },
-      "325:317": { "inputs": { "tile_size": 768, "overlap": 64, "temporal_size": 4096, "temporal_overlap": 4, "samples": [ "325:311", 0 ], "vae": [ "325:318", 2 ] }, "class_type": "VAEDecodeTiled" },
-      "325:318": { "inputs": { "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors" }, "class_type": "CheckpointLoaderSimple" },
-      "325:319": { "inputs": { "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors", "ckpt_name": "ltx-2.3-22b-dev-fp8.safetensors", "device": "default" }, "class_type": "LTXAVTextEncoderLoader" },
-      "325:320": { "inputs": { "value": prompt }, "class_type": "PrimitiveStringMultiline" },
-      "325:321": { "inputs": { "video_latent": [ "325:298", 0 ], "audio_latent": [ "325:307", 0 ] }, "class_type": "LTXVConcatAVLatent" },
-      "325:322": { "inputs": { "image": "example.png" }, "class_type": "LoadImage" },
-      "325:323": { "inputs": { "expression": "a * b + 1", "values.a": [ "325:303", 0 ], "values.b": [ "325:302", 0 ] }, "class_type": "ComfyMathExpression" }
+      "457": { "inputs": { "filename_prefix": "video/ComfyUI", "format": "mp4", "format.codec": "auto", "codec": "auto", "video": [ "456:413", 0 ] }, "class_type": "SaveVideo" },
+      "456:413": { "inputs": { "fps": [ "456:447", 0 ], "bit_depth": 8, "color_space": "sRGB", "codec": "none", "images": [ "456:424", 0 ], "audio": [ "456:417", 0 ] }, "class_type": "CreateVideo" },
+      "456:414": { "inputs": { "video_latent": [ "456:416", 0 ], "audio_latent": [ "456:422", 1 ] }, "class_type": "LTXVConcatAVLatent" },
+      "456:415": { "inputs": { "sigmas": "0.85, 0.7250, 0.4219, 0.0" }, "class_type": "ManualSigmas" },
+      "456:416": { "inputs": { "samples": [ "456:422", 0 ], "upscale_model": [ "456:438", 0 ], "vae": [ "456:440", 0 ] }, "class_type": "LTXVLatentUpsampler" },
+      "456:417": { "inputs": { "samples": [ "456:423", 1 ], "audio_vae": [ "456:441", 0 ] }, "class_type": "LTXVAudioVAEDecode" },
+      "456:418": { "inputs": { "sampler_name": "euler_ancestral" }, "class_type": "KSamplerSelect" },
+      "456:419": { "inputs": { "video_cfg": 1, "audio_cfg": 1, "model": [ "456:439", 0 ], "positive": [ "456:430", 0 ], "negative": [ "456:430", 1 ] }, "class_type": "LTXVDualCFGGuider" },
+      "456:420": { "inputs": { "noise": [ "456:421", 0 ], "guider": [ "456:419", 0 ], "sampler": [ "456:418", 0 ], "sigmas": [ "456:415", 0 ], "latent_image": [ "456:414", 0 ] }, "class_type": "SamplerCustomAdvanced" },
+      "456:421": { "inputs": { "noise_seed": Math.floor(Math.random() * 10000000) }, "class_type": "RandomNoise" },
+      "456:422": { "inputs": { "av_latent": [ "456:425", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
+      "456:423": { "inputs": { "av_latent": [ "456:420", 0 ] }, "class_type": "LTXVSeparateAVLatent" },
+      "456:424": { "inputs": { "tile_size": 512, "overlap": 64, "temporal_size": 64, "temporal_overlap": 16, "samples": [ "456:423", 0 ], "vae": [ "456:440", 0 ] }, "class_type": "VAEDecodeTiled" },
+      "456:425": { "inputs": { "noise": [ "456:429", 0 ], "guider": [ "456:427", 0 ], "sampler": [ "456:428", 0 ], "sigmas": [ "456:426", 0 ], "latent_image": [ "456:431", 0 ] }, "class_type": "SamplerCustomAdvanced" },
+      "456:426": { "inputs": { "sigmas": "1.0, 0.99375, 0.9875, 0.98125, 0.975, 0.909375, 0.725, 0.421875, 0.0" }, "class_type": "ManualSigmas" },
+      "456:427": { "inputs": { "video_cfg": 1, "audio_cfg": 1, "model": [ "456:439", 0 ], "positive": [ "456:430", 0 ], "negative": [ "456:430", 1 ] }, "class_type": "LTXVDualCFGGuider" },
+      "456:428": { "inputs": { "sampler_name": "euler_ancestral" }, "class_type": "KSamplerSelect" },
+      "456:429": { "inputs": { "noise_seed": Math.floor(Math.random() * 10000000) }, "class_type": "RandomNoise" },
+      "456:430": { "inputs": { "frame_rate": [ "456:447", 0 ], "positive": [ "456:432", 0 ], "negative": [ "456:433", 0 ] }, "class_type": "LTXVConditioning" },
+      "456:431": { "inputs": { "video_latent": [ "456:434", 0 ], "audio_latent": [ "456:435", 0 ] }, "class_type": "LTXVConcatAVLatent" },
+      "456:432": { "inputs": { "text": [ "456:437", 0 ], "clip": [ "456:442", 0 ] }, "class_type": "CLIPTextEncode" },
+      "456:433": { "inputs": { "text": "pc game, console game, video game, cartoon, childish, ugly", "clip": [ "456:442", 0 ] }, "class_type": "CLIPTextEncode" },
+      "456:434": { "inputs": { "width": [ "456:445", 1 ], "height": [ "456:446", 1 ], "length": [ "456:444", 1 ], "batch_size": 1 }, "class_type": "EmptyLTXVLatentVideo" },
+      "456:435": { "inputs": { "frames_number": [ "456:444", 1 ], "frame_rate": [ "456:447", 1 ], "batch_size": 1, "audio_vae": [ "456:441", 0 ] }, "class_type": "LTXVEmptyLatentAudio" },
+      "456:436": { "inputs": { "source": [ "456:437", 0 ] }, "class_type": "PreviewAny" },
+      "456:437": { "inputs": { "switch": [ "456:454", 0 ], "on_false": [ "456:452", 0 ], "on_true": [ "456:443", 0 ] }, "class_type": "ComfySwitchNode" },
+      "456:438": { "inputs": { "model_name": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors" }, "class_type": "LatentUpscaleModelLoader" },
+      "456:439": { "inputs": { "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors", "weight_dtype": "default" }, "class_type": "UNETLoader" },
+      "456:440": { "inputs": { "vae_name": "ltx-2.5-video-vae-bf16.safetensors" }, "class_type": "VAELoader" },
+      "456:441": { "inputs": { "vae_name": "ltx-2.5-audio-vae-bf16.safetensors" }, "class_type": "VAELoader" },
+      "456:442": { "inputs": { "clip_name": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors", "type": "ltxv", "device": "default" }, "class_type": "CLIPLoader" },
+      "456:443": { "inputs": { "prompt": [ "456:452", 0 ], "max_length": 600, "sampling_mode": "on", "sampling_mode.temperature": 0.7, "sampling_mode.top_k": 64, "sampling_mode.top_p": 0.95, "sampling_mode.min_p": 0.05, "sampling_mode.repetition_penalty": 1.15, "sampling_mode.seed": 0, "sampling_mode.presence_penalty": 0, "thinking": false, "use_default_template": true, "mtp": "auto", "clip": [ "456:453", 0 ] }, "class_type": "TextGenerateLTX2Prompt" },
+      "456:444": { "inputs": { "expression": "a * b + 1", "values.a": [ "456:450", 0 ], "values.b": [ "456:449", 0 ] }, "class_type": "ComfyMathExpression" },
+      "456:445": { "inputs": { "expression": "a/2", "values.a": [ "456:451", 0 ] }, "class_type": "ComfyMathExpression" },
+      "456:446": { "inputs": { "expression": "a/2", "values.a": [ "456:448", 0 ] }, "class_type": "ComfyMathExpression" },
+      "456:447": { "inputs": { "expression": "a", "values.a": [ "456:449", 0 ] }, "class_type": "ComfyMathExpression" },
+      "456:448": { "inputs": { "value": 720 }, "class_type": "PrimitiveInt" },
+      "456:449": { "inputs": { "value": 24 }, "class_type": "PrimitiveInt" },
+      "456:450": { "inputs": { "value": 5 }, "class_type": "PrimitiveInt" },
+      "456:451": { "inputs": { "value": 1280 }, "class_type": "PrimitiveInt" },
+      "456:452": { "inputs": { "value": prompt }, "class_type": "PrimitiveStringMultiline" },
+      "456:453": { "inputs": { "clip_name": "gemma4_e2b_it_int8_convrot.safetensors", "type": "ltxv", "device": "default" }, "class_type": "CLIPLoader" },
+      "456:454": { "inputs": { "value": false }, "class_type": "PrimitiveBoolean" }
     };
 
-    const response = await fetch("https://cloud.comfy.org/api/v2/jobs", {
+    // Para la API local de ComfyUI mandamos { prompt: { ...flujo... } }
+    const response = await fetch(`${NGROK_URL}/prompt`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${comfyToken}`
-      },
-      body: JSON.stringify({ workflow })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: workflow })
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(()=>({}));
-      return res.status(response.status).json({ error: err.message || 'Error conectando a Comfy Cloud' });
+      const err = await response.text();
+      console.error("Error lanzando job local:", err);
+      return res.status(500).json({ error: "No se pudo comunicar con el servidor local. Verificá que Ngrok y ComfyUI estén abiertos." });
     }
 
     const data = await response.json();
-    return res.json({ project: data.id });
+    // data.prompt_id es el ID del job
+    return res.json({ project: data.prompt_id });
   } catch (error: any) {
-    console.error('Error iniciando Comfy:', error);
-    return res.status(500).json({ error: error.message || 'Error en Comfy' });
+    console.error('Error enviando a servidor local:', error);
+    return res.status(500).json({ error: error.message || 'Error en servidor local' });
   }
 });
 
-// Polling status para Comfy Cloud
+// Polling status para el ComfyUI Local
 app.get('/api/generate-video/status', async (req: Request, res: Response) => {
   try {
-    const { project } = req.query;
+    const { project } = req.query; // project es el prompt_id
     if (!project || typeof project !== 'string') return res.status(400).json({ error: 'Falta el project ID' });
-    
-    const comfyToken = "comfyui-6633b0db00fd7aca386f45ce62fabb7212f9f81e66fc3e58f7e99495cd0c2407";
 
-    const response = await fetch(`https://cloud.comfy.org/api/v2/jobs/${project}`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${comfyToken}` }
-    });
+    // Consultamos el historial local
+    const response = await fetch(`${NGROK_URL}/history/${project}`, { method: 'GET' });
 
     if (!response.ok) {
-      return res.status(500).json({ error: 'Error consultando estado del video' });
+      return res.status(500).json({ error: 'Error consultando estado del servidor local' });
     }
 
-    const job = await response.json();
-
-    if (job.status === 'success' || job.status === 'completed') {
-      let finalVideoUrl = "";
+    const historyData = await response.json();
+    
+    // Si el job ID (project) existe en historyData, significa que ya terminó!
+    if (historyData[project]) {
+      const job = historyData[project];
+      let videoFilename = "";
+      let subfolder = "";
+      
+      // Buscar en las salidas (outputs) el archivo guardado (nodo 457)
       if (job.outputs) {
         for (const nodeId in job.outputs) {
           const out = job.outputs[nodeId];
           if (out.videos && out.videos.length > 0) {
-            finalVideoUrl = out.videos[0].url;
+            videoFilename = out.videos[0].filename;
+            subfolder = out.videos[0].subfolder || "";
             break;
           }
         }
       }
 
-      if (finalVideoUrl) {
-        return res.json({ status: 'succeeded', videoUrl: finalVideoUrl });
+      if (videoFilename) {
+        // Armar el link público al video usando ngrok /view
+        const finalUrl = `${NGROK_URL}/view?filename=${encodeURIComponent(videoFilename)}&type=output&subfolder=${encodeURIComponent(subfolder)}`;
+        return res.json({ status: 'succeeded', videoUrl: finalUrl });
       } else {
-         return res.json({ status: 'failed', error: 'No se encontró URL de video en Comfy Cloud.' });
+         return res.json({ status: 'failed', error: 'Renderizado local completado pero no se encontró el video generado.' });
       }
-    } else if (job.status === 'failed' || job.status === 'error') {
-      return res.json({ status: 'failed', error: job.error || 'Error en renderizado' });
     }
 
+    // Si no está en el historial, todavía se está procesando (o está en la cola)
     return res.json({ status: 'processing' });
   } catch (error: any) {
-    console.error('Error en status Comfy:', error);
-    return res.status(500).json({ error: error.message || 'Error en Status' });
+    console.error('Error en status local:', error);
+    return res.status(500).json({ error: error.message || 'Error en Status local' });
   }
 });
 
